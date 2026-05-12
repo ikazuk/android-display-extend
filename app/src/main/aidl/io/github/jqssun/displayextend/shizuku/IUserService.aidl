@@ -2,9 +2,9 @@ package io.github.jqssun.displayextend.shizuku;
 
 interface IUserService {
 
-    void destroy() = 16777114; // Destroy method defined by Shizuku server
+    void destroy() = 16777114; // destroy method defined by Shizuku server
 
-    void exit() = 1; // Exit method defined by user
+    void exit() = 1; // exit method defined by user
 
     String fetchLogs() = 2;
 

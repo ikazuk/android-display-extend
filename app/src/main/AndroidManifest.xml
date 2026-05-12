@@ -55,30 +55,30 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        
+
         <activity
             android:name=".LauncherActivity"
             android:launchMode="singleTask"
             android:exported="false" />
-        
+
         <activity
             android:name=".TouchpadActivity"
             android:launchMode="singleTask"
             android:exported="false"
             android:theme="@style/AppTheme" />
-        
+
         <activity
             android:name=".PureBlackActivity"
             android:launchMode="singleTask"
             android:exported="false"
             android:theme="@style/AppTheme" />
-        
+
         <activity
             android:name=".ManagedVirtualDisplayActivity"
             android:launchMode="singleTask"
             android:exported="false"
             android:theme="@style/AppTheme" />
-        
+
         <service
             android:name=".MediaProjectionService"
             android:foregroundServiceType="mediaProjection"
@@ -103,7 +103,7 @@
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
-        
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -113,20 +113,20 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-        
+
         <service
             android:name=".FloatingButtonService"
             android:enabled="true"
             android:exported="false" />
-        
-        <receiver 
+
+        <receiver
             android:name=".PureBlackActivity$ExitReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="io.github.jqssun.displayextend.EXIT_PURE_BLACK" />
             </intent-filter>
         </receiver>
-        
+
     </application>
 
     <queries>

@@ -20,196 +20,203 @@ import android.view.Surface;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-
 import androidx.appcompat.app.AppCompatActivity;
-
+import dev.rikka.tools.refine.Refine;
 import io.github.jqssun.displayextend.shizuku.ServiceUtils;
 import io.github.jqssun.displayextend.shizuku.ShizukuUtils;
 import io.github.jqssun.displayextend.shizuku.SurfaceControl;
-
-import dev.rikka.tools.refine.Refine;
-
 import java.util.HashSet;
 import java.util.Set;
 
 public class PureBlackActivity extends AppCompatActivity {
-    private final Set<Integer> externalDeviceIds = new HashSet<>();
-    private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
-    private IInputManager inputManager;
-    private boolean useRealScreenOff;
+  private final Set<Integer> externalDeviceIds = new HashSet<>();
+  private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
+  private IInputManager inputManager;
+  private boolean useRealScreenOff;
 
-    public static class ExitReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if ("io.github.jqssun.displayextend.EXIT_PURE_BLACK".equals(intent.getAction())) {
-                if (State.isInPureBlackActivity != null) {
-                    State.isInPureBlackActivity.finish();
-                }
-            }
+  public static class ExitReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      if ("io.github.jqssun.displayextend.EXIT_PURE_BLACK".equals(intent.getAction())) {
+        if (State.isInPureBlackActivity != null) {
+          State.isInPureBlackActivity.finish();
         }
+      }
+    }
+  }
+
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    State.isInPureBlackActivity = this;
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+    getWindow()
+        .setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+    Window window = getWindow();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      window.setDecorFitsSystemWindows(false);
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        State.isInPureBlackActivity = this;
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      WindowManager.LayoutParams layoutParams = window.getAttributes();
+      layoutParams.layoutInDisplayCutoutMode =
+          WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+      window.setAttributes(layoutParams);
+    }
 
-        getWindow().setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    window.setStatusBarColor(Color.TRANSPARENT);
+    window.setNavigationBarColor(Color.TRANSPARENT);
 
-        Window window = getWindow();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false);
-        }
+    View view = new View(this);
+    view.setFocusable(true);
+    view.setFocusableInTouchMode(true);
+    view.setBackgroundColor(Color.BLACK);
+    setContentView(view);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            WindowManager.LayoutParams layoutParams = window.getAttributes();
-            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
-            window.setAttributes(layoutParams);
-        }
+    useRealScreenOff = Pref.getUseRealScreenOff();
 
-        window.setStatusBarColor(Color.TRANSPARENT);
-        window.setNavigationBarColor(Color.TRANSPARENT);
-
-        View view = new View(this);
-        view.setFocusable(true);
-        view.setFocusableInTouchMode(true);
-        view.setBackgroundColor(Color.BLACK);
-        setContentView(view);
-
-        useRealScreenOff = Pref.getUseRealScreenOff();
-        
-        view.setOnGenericMotionListener((v, event) -> {
-            TouchpadActivity.setFocus(inputManager, Display.DEFAULT_DISPLAY);
-            view.requestFocus();
-            view.requestFocusFromTouch();
-            view.requestPointerCapture();
-            return false;
+    view.setOnGenericMotionListener(
+        (v, event) -> {
+          TouchpadActivity.setFocus(inputManager, Display.DEFAULT_DISPLAY);
+          view.requestFocus();
+          view.requestFocusFromTouch();
+          view.requestPointerCapture();
+          return false;
         });
-        
-        DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 
-        view.setOnTouchListener((v, event) -> {
-            if (_isExternalDevice(event)) {
-                Display targetDisplay = displayManager.getDisplay(State.lastSingleAppDisplay);
-                if (targetDisplay == null)
-                    return true;
+    DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 
-                float x = event.getX();
-                float y = event.getY();
+    view.setOnTouchListener(
+        (v, event) -> {
+          if (_isExternalDevice(event)) {
+            Display targetDisplay = displayManager.getDisplay(State.lastSingleAppDisplay);
+            if (targetDisplay == null) return true;
 
-                float relativeX = x / v.getWidth();
-                float relativeY = y / v.getHeight();
+            float x = event.getX();
+            float y = event.getY();
 
-                int rotation = targetDisplay.getRotation();
-                float targetWidth = targetDisplay.getWidth();
-                float targetHeight = targetDisplay.getHeight();
-                
-                float mappedX, mappedY;
-                switch (rotation) {
-                    case Surface.ROTATION_270:
-                        mappedX = (1 - relativeY) * targetWidth;
-                        mappedY = relativeX * targetHeight;
-                        break;
-                    case Surface.ROTATION_180:
-                        mappedX = (1 - relativeX) * targetWidth;
-                        mappedY = (1 - relativeY) * targetHeight;
-                        break;
-                    case Surface.ROTATION_90:
-                        mappedX = relativeY * targetWidth;
-                        mappedY = (1 - relativeX) * targetHeight;
-                        break;
-                    default: // Surface.ROTATION_0
-                        mappedX = relativeX * targetWidth;
-                        mappedY = relativeY * targetHeight;
-                        break;
-                }
-                event.setLocation(mappedX, mappedY);
+            float relativeX = x / v.getWidth();
+            float relativeY = y / v.getHeight();
 
-                MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
-                motionEventHidden.setDisplayId(State.lastSingleAppDisplay);
-                ServiceUtils.getInputManager().injectInputEvent(event, 0);
-                return true;
+            int rotation = targetDisplay.getRotation();
+            float targetWidth = targetDisplay.getWidth();
+            float targetHeight = targetDisplay.getHeight();
+
+            float mappedX, mappedY;
+            switch (rotation) {
+              case Surface.ROTATION_270:
+                mappedX = (1 - relativeY) * targetWidth;
+                mappedY = relativeX * targetHeight;
+                break;
+              case Surface.ROTATION_180:
+                mappedX = (1 - relativeX) * targetWidth;
+                mappedY = (1 - relativeY) * targetHeight;
+                break;
+              case Surface.ROTATION_90:
+                mappedX = relativeY * targetWidth;
+                mappedY = (1 - relativeX) * targetHeight;
+                break;
+              default: // surface rotation 0
+                mappedX = relativeX * targetWidth;
+                mappedY = relativeY * targetHeight;
+                break;
             }
-            finish();
+            event.setLocation(mappedX, mappedY);
+
+            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+            motionEventHidden.setDisplayId(State.lastSingleAppDisplay);
+            ServiceUtils.getInputManager().injectInputEvent(event, 0);
             return true;
+          }
+          finish();
+          return true;
         });
-       if (ShizukuUtils.hasPermission()) {
-           inputManager = ServiceUtils.getInputManager();
-           TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
-           TouchpadAccessibilityService.startServiceByShizuku(this);
-           _powerOffScreen();
-           new Handler().postDelayed(() -> {
-               TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
-           }, 500);
-       } else if(TouchpadAccessibilityService.getInstance() != null) {
-           TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
-           new Handler().postDelayed(() -> {
-               TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
-           }, 500);
-       } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
-           Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
-           this.startService(serviceIntent);
-           new Handler().postDelayed(() -> {
-               TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
-           }, 500);
-       }
+    if (ShizukuUtils.hasPermission()) {
+      inputManager = ServiceUtils.getInputManager();
+      TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
+      TouchpadAccessibilityService.startServiceByShizuku(this);
+      _powerOffScreen();
+      new Handler()
+          .postDelayed(
+              () -> {
+                TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
+              },
+              500);
+    } else if (TouchpadAccessibilityService.getInstance() != null) {
+      TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+      new Handler()
+          .postDelayed(
+              () -> {
+                TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+              },
+              500);
+    } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+      Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+      this.startService(serviceIntent);
+      new Handler()
+          .postDelayed(
+              () -> {
+                TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+              },
+              500);
     }
+  }
 
-    private void _powerOffScreen() {
-        if (useRealScreenOff && State.userService != null) {
-            try {
-                State.userService.startListenVolumeKey();
-                State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
-            } catch (RemoteException e) {
-                State.log("powerOffScreen failed: " + e.getMessage());
-            }
-        }
+  private void _powerOffScreen() {
+    if (useRealScreenOff && State.userService != null) {
+      try {
+        State.userService.startListenVolumeKey();
+        State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
+      } catch (RemoteException e) {
+        State.log("powerOffScreen failed: " + e.getMessage());
+      }
     }
+  }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        State.isInPureBlackActivity = null;
-        if (useRealScreenOff && State.userService != null) {
-            try {
-                State.userService.stopListenVolumeKey();
-                State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
-            } catch (RemoteException e) {
-                State.log("powerUpScreen failed: " + e.getMessage());
-            }
-        }
+  @Override
+  public void onDestroy() {
+    super.onDestroy();
+    State.isInPureBlackActivity = null;
+    if (useRealScreenOff && State.userService != null) {
+      try {
+        State.userService.stopListenVolumeKey();
+        State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+      } catch (RemoteException e) {
+        State.log("powerUpScreen failed: " + e.getMessage());
+      }
     }
+  }
 
-    private boolean _isExternalDevice(MotionEvent event) {
-        if (!hasShizukuPermission) {
-            return false;
-        }
-        int deviceId = event.getDeviceId();
-        if (externalDeviceIds.contains(deviceId)) {
-            return true;
-        }
-        InputDevice device = InputDevice.getDevice(deviceId);
-        if (device != null) {
-            if (PlatformCompat.isExternalInputDevice(device)) {
-                externalDeviceIds.add(deviceId);
-                return true;
-            }
-        }
-        return false;
+  private boolean _isExternalDevice(MotionEvent event) {
+    if (!hasShizukuPermission) {
+      return false;
     }
+    int deviceId = event.getDeviceId();
+    if (externalDeviceIds.contains(deviceId)) {
+      return true;
+    }
+    InputDevice device = InputDevice.getDevice(deviceId);
+    if (device != null) {
+      if (PlatformCompat.isExternalInputDevice(device)) {
+        externalDeviceIds.add(deviceId);
+        return true;
+      }
+    }
+    return false;
+  }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (useRealScreenOff) {
-           if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-               super.onKeyDown(keyCode, event);
-               finish();
-               return true;
-           }
-        }
-        return super.onKeyDown(keyCode, event);
+  @Override
+  public boolean onKeyDown(int keyCode, KeyEvent event) {
+    if (useRealScreenOff) {
+      if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+        super.onKeyDown(keyCode, event);
+        finish();
+        return true;
+      }
     }
+    return super.onKeyDown(keyCode, event);
+  }
 }
