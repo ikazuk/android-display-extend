@@ -18,6 +18,7 @@ import androidx.navigation.Navigation;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.transition.MaterialSharedAxis;
 import io.github.jqssun.displayextend.job.AcquireShizuku;
+import io.github.jqssun.displayextend.shizuku.ShizukuUtils;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,9 @@ public class HomeFragment extends Fragment {
   private MaterialButton accessibilityPermissionBtn;
   private TextView inputBindingStatus;
   private LinearLayout displaysContainer;
+  private TextView permissionsStatusTitle;
+  private TextView permissionsStatusDetail;
+  private ImageView permissionsStatusIcon;
 
   private final DisplayManager.DisplayListener displayListener =
       new DisplayManager.DisplayListener() {
@@ -75,17 +79,22 @@ public class HomeFragment extends Fragment {
         v -> {
           TouchpadAccessibilityService.ensureServiceAvailable(requireContext(), true);
           _updateAccessibilityStatus();
+          _updatePermissionsCard();
         });
     inputBindingStatus = view.findViewById(R.id.inputBindingStatus);
     displaysContainer = view.findViewById(R.id.displaysContainer);
+    permissionsStatusTitle = view.findViewById(R.id.permissionsStatusTitle);
+    permissionsStatusDetail = view.findViewById(R.id.permissionsStatusDetail);
+    permissionsStatusIcon = view.findViewById(R.id.permissionsStatusIcon);
 
-    view.findViewById(R.id.openCastBtn)
-        .setOnClickListener(
-            v -> {
-              Intent intent = new Intent();
-              intent.setAction(android.provider.Settings.ACTION_CAST_SETTINGS);
-              startActivity(intent);
-            });
+    MaterialButton openCastBtn = view.findViewById(R.id.openCastBtn);
+    Intent castIntent = new Intent(android.provider.Settings.ACTION_CAST_SETTINGS);
+    boolean castAvailable =
+        castIntent.resolveActivity(requireContext().getPackageManager()) != null;
+    openCastBtn.setEnabled(castAvailable);
+    if (castAvailable) {
+      openCastBtn.setOnClickListener(v -> startActivity(castIntent));
+    }
     view.findViewById(R.id.openMirrorOverviewBtn)
         .setOnClickListener(v -> MirrorIntegrationHelper.openMirrorOverview(requireContext()));
 
@@ -136,9 +145,24 @@ public class HomeFragment extends Fragment {
     }
     shizukuPermissionBtn.setVisibility(state.shizukuPermissionVisible ? View.VISIBLE : View.GONE);
     _updateAccessibilityStatus();
+    _updatePermissionsCard();
 
     _refreshDisplayList();
     _updateInputBindingStatus();
+  }
+
+  private void _updatePermissionsCard() {
+    if (permissionsStatusTitle == null || getContext() == null) return;
+    boolean granted =
+        ShizukuUtils.hasShizukuStarted()
+            && ShizukuUtils.hasPermission()
+            && TouchpadAccessibilityService.isAccessibilityServiceEnabled(requireContext());
+    permissionsStatusTitle.setText(
+        granted ? R.string.permissions_granted : R.string.permissions_not_granted);
+    permissionsStatusDetail.setText(
+        granted ? R.string.permissions_granted_detail : R.string.permissions_not_granted_detail);
+    permissionsStatusIcon.setImageResource(
+        granted ? R.drawable.ic_check_circle : R.drawable.ic_error);
   }
 
   private void _updateAccessibilityStatus() {

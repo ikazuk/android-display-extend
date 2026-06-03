@@ -17,8 +17,8 @@ android {
         applicationId "io.github.jqssun.displayextend"
         minSdk 26
         targetSdk 35
-        versionCode 20
-        versionName "0.0.20"
+        versionCode 21
+        versionName "0.0.21"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,7 +41,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             if (localProps.containsKey("storeFile")) {
                 signingConfig signingConfigs.release
             }
@@ -61,8 +62,6 @@ android {
 }
 
 dependencies {
-    implementation project(':hidden-api-stub')
-
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.navigation:navigation-fragment:2.9.7'
     implementation 'androidx.navigation:navigation-ui:2.9.7'

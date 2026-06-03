@@ -102,6 +102,12 @@
     <string name="ime_policy_hide">Hidden</string>
     <string name="android15_rotation_hint">Android 15+ supports rotation natively - this mode is not required</string>
 
+    <!-- Permissions status card -->
+    <string name="permissions_granted">Ready</string>
+    <string name="permissions_granted_detail">All permissions granted</string>
+    <string name="permissions_not_granted">Missing permissions</string>
+    <string name="permissions_not_granted_detail">Certain features will not work</string>
+
     <!-- Settings -->
     <string name="section_permissions">Permissions</string>
     <string name="section_application">Application</string>

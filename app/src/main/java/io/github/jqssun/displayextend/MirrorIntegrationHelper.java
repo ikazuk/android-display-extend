@@ -17,6 +17,8 @@ public final class MirrorIntegrationHelper {
   private static final String MIRROR_EXTRA_SOURCE_SCREEN = "source_screen";
   private static final String MIRROR_SOURCE_EXTEND_OVERVIEW = "extend_overview";
   private static final String MIRROR_EXTRA_DISPLAY_ID = "display_id";
+  private static final Uri MIRROR_MARKET_URI =
+      Uri.parse("market://details?id=" + MIRROR_PACKAGE_NAME);
   private static final Uri MIRROR_PROJECT_URI =
       Uri.parse("https://github.com/jqssun/android-display-mirror");
   private static final Uri MIRROR_TOUCHSCREEN_DISPLAYS_URI =
@@ -83,6 +85,11 @@ public final class MirrorIntegrationHelper {
       return;
     }
     Toast.makeText(context, R.string.mirror_app_not_installed, Toast.LENGTH_SHORT).show();
+    Intent market = new Intent(Intent.ACTION_VIEW, MIRROR_MARKET_URI);
+    if (market.resolveActivity(context.getPackageManager()) != null) {
+      context.startActivity(market);
+      return;
+    }
     context.startActivity(new Intent(Intent.ACTION_VIEW, MIRROR_PROJECT_URI));
   }
 }

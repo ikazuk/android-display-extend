@@ -10,9 +10,7 @@
 
 Combined with any supported launcher, it is a full open-source replacement for [Samsung DeX](https://www.samsung.com/us/apps/dex/), [Motorola Smart Connect Mobile Desktop (formerly Ready For)](https://www.motorola.com/we/en/motoverse/smart-connect), and Honor Easy Projection, with additional features on top.
 
-<!--
-<img alt="Display Manager for Android on Android Phone" src="https://github.com/jqssun/android-display-extend/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/1.png?raw=true" />
--->
+<video loop src='https://github.com/user-attachments/assets/59470754-c654-4f09-bef3-43b920d1400f' alt="demo" width="1200" style="display: block; margin: auto;"></video>
 
 ## Usage
 
