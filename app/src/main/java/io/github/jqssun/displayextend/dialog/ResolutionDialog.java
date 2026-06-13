@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import io.github.jqssun.displayextend.TvFocus;
 import com.google.android.material.textfield.TextInputEditText;
 import io.github.jqssun.displayextend.R;
 import io.github.jqssun.displayextend.State;
@@ -25,7 +26,7 @@ public class ResolutionDialog {
         context.getString(
             R.string.resolution_warning, ChangeResolution.CONFIRM_TIMEOUT_SECONDS));
 
-    new MaterialAlertDialogBuilder(context)
+    TvFocus.attach(new MaterialAlertDialogBuilder(context)
         .setTitle(context.getString(R.string.edit_resolution))
         .setView(dialogView)
         .setPositiveButton(
@@ -49,6 +50,6 @@ public class ResolutionDialog {
               }
             })
         .setNegativeButton(context.getString(R.string.cancel), null)
-        .show();
+        .show());
   }
 }

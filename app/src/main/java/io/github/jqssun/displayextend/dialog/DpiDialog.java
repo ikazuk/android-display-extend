@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Toast;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import io.github.jqssun.displayextend.TvFocus;
 import com.google.android.material.textfield.TextInputEditText;
 import io.github.jqssun.displayextend.R;
 import io.github.jqssun.displayextend.State;
@@ -17,7 +18,7 @@ public class DpiDialog {
 
     dpiInput.setText(String.valueOf(currentDpi));
 
-    new MaterialAlertDialogBuilder(context)
+    TvFocus.attach(new MaterialAlertDialogBuilder(context)
         .setTitle(context.getString(R.string.edit_dpi))
         .setView(dialogView)
         .setPositiveButton(
@@ -40,6 +41,6 @@ public class DpiDialog {
               }
             })
         .setNegativeButton(context.getString(R.string.cancel), null)
-        .show();
+        .show());
   }
 }

@@ -147,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     setContentView(R.layout.activity_main);
+    TvFocus.attach(getWindow());
 
     State.currentActivity = new WeakReference<>(this);
     State.reconcileLastSingleAppDisplay(this);

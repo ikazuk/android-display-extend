@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import io.github.jqssun.displayextend.TvFocus;
 import io.github.jqssun.displayextend.Pref;
 import io.github.jqssun.displayextend.R;
 import io.github.jqssun.displayextend.State;
@@ -34,7 +35,7 @@ public class ManagedVirtualDisplayDialog {
 
     Point initialSize = new Point();
     ServiceUtils.getWindowManager().getInitialDisplaySize(displayId, initialSize);
-    new MaterialAlertDialogBuilder(context)
+    TvFocus.attach(new MaterialAlertDialogBuilder(context)
         .setTitle(context.getString(R.string.managed_virtual_display_settings))
         .setView(dialogView)
         .setPositiveButton(
@@ -62,6 +63,6 @@ public class ManagedVirtualDisplayDialog {
                           Pref.getFollowAppRotation())));
             })
         .setNegativeButton(context.getString(R.string.cancel), null)
-        .show();
+        .show());
   }
 }

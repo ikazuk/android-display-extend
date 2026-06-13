@@ -68,6 +68,7 @@ public class LauncherActivity extends AppCompatActivity {
     targetDisplayId = getIntent().getIntExtra(EXTRA_TARGET_DISPLAY_ID, Display.DEFAULT_DISPLAY);
 
     setContentView(R.layout.activity_launcher);
+    TvFocus.attach(getWindow());
 
     DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
     Display display = displayManager.getDisplay(targetDisplayId);

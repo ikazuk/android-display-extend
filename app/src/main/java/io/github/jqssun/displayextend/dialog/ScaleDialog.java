@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Toast;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import io.github.jqssun.displayextend.TvFocus;
 import com.google.android.material.textfield.TextInputEditText;
 import io.github.jqssun.displayextend.R;
 import io.github.jqssun.displayextend.State;
@@ -22,7 +23,7 @@ public class ScaleDialog {
     TextInputEditText scaleInput = dialogView.findViewById(R.id.scale_input);
     scaleInput.setText(String.valueOf(currentPercent));
 
-    new MaterialAlertDialogBuilder(context)
+    TvFocus.attach(new MaterialAlertDialogBuilder(context)
         .setTitle(context.getString(R.string.edit_scale))
         .setView(dialogView)
         .setPositiveButton(
@@ -46,6 +47,6 @@ public class ScaleDialog {
               }
             })
         .setNegativeButton(context.getString(R.string.cancel), null)
-        .show();
+        .show());
   }
 }

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.view.IWindowManager;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import io.github.jqssun.displayextend.TvFocus;
 import io.github.jqssun.displayextend.R;
 import io.github.jqssun.displayextend.State;
 import io.github.jqssun.displayextend.shizuku.ServiceUtils;
@@ -75,6 +76,7 @@ public class ChangeDPI implements Job {
                     State.resumeJob();
                   })
               .show();
+      TvFocus.attach(dialog);
 
       timeoutThread =
           new Thread(

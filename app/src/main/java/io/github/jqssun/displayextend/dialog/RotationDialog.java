@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import io.github.jqssun.displayextend.TvFocus;
 import io.github.jqssun.displayextend.R;
 import io.github.jqssun.displayextend.State;
 import io.github.jqssun.displayextend.job.ChangeRotation;
@@ -23,7 +24,7 @@ public class RotationDialog {
     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
     rotationSpinner.setAdapter(adapter);
 
-    new MaterialAlertDialogBuilder(context)
+    TvFocus.attach(new MaterialAlertDialogBuilder(context)
         .setTitle(context.getString(R.string.edit_rotation))
         .setView(dialogView)
         .setPositiveButton(
@@ -53,6 +54,6 @@ public class RotationDialog {
               State.startNewJob(new ChangeRotation(displayId, rotation));
             })
         .setNegativeButton(context.getString(R.string.cancel), null)
-        .show();
+        .show());
   }
 }
