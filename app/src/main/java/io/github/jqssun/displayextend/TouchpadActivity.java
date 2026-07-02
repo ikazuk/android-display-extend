@@ -85,6 +85,8 @@ public class TouchpadActivity extends AppCompatActivity {
   private boolean isCursorLocked = false;
   private boolean useAccessibilityCursor = false;
   private boolean useAccessibilityTouchOverlay = false;
+  private boolean imeVisible = false;
+  private int imeHeight = 0;
   private float sensitivity = 3.0f;
   private Spinner modeSpinner;
   private static final int MODE_NORMAL = 0;
@@ -254,6 +256,27 @@ public class TouchpadActivity extends AppCompatActivity {
         (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
             _syncTouchpadOverlay());
 
+    touchpadArea.setOnApplyWindowInsetsListener(
+        (v, insets) -> {
+          boolean wasVisible = imeVisible;
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            imeVisible = insets.isVisible(WindowInsets.Type.ime());
+            imeHeight = insets.getInsets(WindowInsets.Type.ime()).bottom;
+          }
+          if (imeVisible != wasVisible) {
+            Log.d(TAG, "[IME-DEBUG] imeVisible=" + imeVisible + " imeHeight=" + imeHeight
+                + " touchpadArea=[" + touchpadArea.getWidth() + "x" + touchpadArea.getHeight()
+                + " @ y=" + touchpadArea.getTop() + "]");
+            if (touchpadOverlay != null) {
+              int[] loc = new int[2];
+              touchpadArea.getLocationOnScreen(loc);
+              Log.d(TAG, "[IME-DEBUG] overlay screen pos=(" + loc[0] + "," + loc[1]
+                  + ") size=" + touchpadOverlay.getWidth() + "x" + touchpadOverlay.getHeight());
+            }
+          }
+          return v.onApplyWindowInsets(insets);
+        });
+
     nightModeButton = findViewById(R.id.nightModeButton);
     _registerNightModeButton((MaterialButton) findViewById(R.id.backButton));
     _registerNightModeButton((MaterialButton) findViewById(R.id.homeButton));
@@ -384,6 +407,18 @@ public class TouchpadActivity extends AppCompatActivity {
   private void _setupTouchListenerForInputManager() {
     touchpadOverlay.setOnTouchListener(
         (v, event) -> {
+          if (imeVisible && event.getAction() == MotionEvent.ACTION_DOWN) {
+            int[] overlayLoc = new int[2];
+            touchpadOverlay.getLocationOnScreen(overlayLoc);
+            float screenX = event.getX() + overlayLoc[0];
+            float screenY = event.getY() + overlayLoc[1];
+            Log.w(TAG, "[IME-DEBUG] touch on overlay WHILE IME VISIBLE: action=DOWN"
+                + " local=(" + event.getX() + "," + event.getY() + ")"
+                + " screen=(" + screenX + "," + screenY + ")"
+                + " overlayBounds=[" + overlayLoc[0] + "," + overlayLoc[1]
+                + " " + touchpadOverlay.getWidth() + "x" + touchpadOverlay.getHeight() + "]");
+          }
+
           if (_handleDragTouch(event)) {
             return true;
           }

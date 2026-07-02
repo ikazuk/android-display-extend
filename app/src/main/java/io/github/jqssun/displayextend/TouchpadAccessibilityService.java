@@ -300,6 +300,16 @@ public class TouchpadAccessibilityService extends AccessibilityService {
 
   @Override
   protected boolean onKeyEvent(KeyEvent event) {
+    int displayIdForLog = -1;
+    try {
+      displayIdForLog = (int) KeyEvent.class.getMethod("getDisplayId").invoke(event);
+    } catch (Throwable ignored) {}
+    Log.d("TouchpadA11y", "[IME-DEBUG] onKeyEvent: keyCode=" + event.getKeyCode()
+        + " action=" + (event.getAction() == KeyEvent.ACTION_DOWN ? "DOWN" : "UP")
+        + " char=" + (event.getUnicodeChar() != 0 ? String.valueOf((char) event.getUnicodeChar()) : "none")
+        + " source=0x" + Integer.toHexString(event.getSource())
+        + " displayId=" + displayIdForLog
+        + " device=" + (event.getDevice() != null ? event.getDevice().getName() : "null"));
     if (event.getKeyCode() == KeyEvent.KEYCODE_HOME && State.lastSingleAppDisplay > 0) {
       TouchpadActivity.launchLastPackage(getApplicationContext(), State.lastSingleAppDisplay);
       return true;
@@ -308,7 +318,19 @@ public class TouchpadAccessibilityService extends AccessibilityService {
   }
 
   @Override
-  public void onAccessibilityEvent(AccessibilityEvent event) {}
+  public void onAccessibilityEvent(AccessibilityEvent event) {
+    int type = event.getEventType();
+    if (type == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+        || type == AccessibilityEvent.TYPE_VIEW_FOCUSED
+        || type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+      Log.d("TouchpadA11y", "[IME-DEBUG] a11yEvent: type=0x" + Integer.toHexString(type)
+          + " pkg=" + event.getPackageName()
+          + " text=" + event.getText()
+          + " before=" + event.getBeforeText()
+          + " added=" + event.getAddedCount()
+          + " removed=" + event.getRemovedCount());
+    }
+  }
 
   @Override
   public void onInterrupt() {}
