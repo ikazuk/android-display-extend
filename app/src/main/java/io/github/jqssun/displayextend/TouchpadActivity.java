@@ -256,26 +256,14 @@ public class TouchpadActivity extends AppCompatActivity {
         (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
             _syncTouchpadOverlay());
 
-    touchpadArea.setOnApplyWindowInsetsListener(
+    touchpadRoot.setOnApplyWindowInsetsListener(
         (v, insets) -> {
-          boolean wasVisible = imeVisible;
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            boolean wasVisible = imeVisible;
             imeVisible = insets.isVisible(WindowInsets.Type.ime());
             imeHeight = insets.getInsets(WindowInsets.Type.ime()).bottom;
-          }
-          if (imeVisible != wasVisible) {
-            String msg = "[IME-DEBUG] imeVisible=" + imeVisible + " imeHeight=" + imeHeight
-                + " touchpadArea=[" + touchpadArea.getWidth() + "x" + touchpadArea.getHeight()
-                + " @ y=" + touchpadArea.getTop() + "]";
-            Log.d(TAG, msg);
-            State.log(msg);
-            if (touchpadOverlay != null) {
-              int[] loc = new int[2];
-              touchpadArea.getLocationOnScreen(loc);
-              String msg2 = "[IME-DEBUG] overlay pos=(" + loc[0] + "," + loc[1]
-                  + ") size=" + touchpadOverlay.getWidth() + "x" + touchpadOverlay.getHeight();
-              Log.d(TAG, msg2);
-              State.log(msg2);
+            if (imeVisible != wasVisible) {
+              State.log("[IME] visible=" + imeVisible + " height=" + imeHeight);
             }
           }
           return v.onApplyWindowInsets(insets);
@@ -411,18 +399,14 @@ public class TouchpadActivity extends AppCompatActivity {
   private void _setupTouchListenerForInputManager() {
     touchpadOverlay.setOnTouchListener(
         (v, event) -> {
-          if (imeVisible && event.getAction() == MotionEvent.ACTION_DOWN) {
+          if (event.getAction() == MotionEvent.ACTION_DOWN) {
             int[] overlayLoc = new int[2];
             touchpadOverlay.getLocationOnScreen(overlayLoc);
             float screenX = event.getX() + overlayLoc[0];
             float screenY = event.getY() + overlayLoc[1];
-            String msg = "[IME-DEBUG] TOUCH ON OVERLAY (IME visible): "
-                + "local=(" + (int) event.getX() + "," + (int) event.getY() + ")"
-                + " screen=(" + (int) screenX + "," + (int) screenY + ")"
+            State.log("[TOUCH] overlay DOWN screen=(" + (int) screenX + "," + (int) screenY + ")"
                 + " overlay=[" + overlayLoc[0] + "," + overlayLoc[1]
-                + " " + touchpadOverlay.getWidth() + "x" + touchpadOverlay.getHeight() + "]";
-            Log.w(TAG, msg);
-            State.log(msg);
+                + " +" + touchpadOverlay.getWidth() + "x" + touchpadOverlay.getHeight() + "]");
           }
 
           if (_handleDragTouch(event)) {
