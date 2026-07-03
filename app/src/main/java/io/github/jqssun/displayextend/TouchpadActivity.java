@@ -264,6 +264,7 @@ public class TouchpadActivity extends AppCompatActivity {
             imeHeight = insets.getInsets(WindowInsets.Type.ime()).bottom;
             if (imeVisible != wasVisible) {
               State.log("[IME] visible=" + imeVisible + " height=" + imeHeight);
+              _syncTouchpadOverlay();
             }
           }
           return v.onApplyWindowInsets(insets);
@@ -912,6 +913,17 @@ public class TouchpadActivity extends AppCompatActivity {
 
     int[] loc = new int[2];
     touchpadArea.getLocationOnScreen(loc);
+
+    if (imeVisible && imeHeight > 0) {
+      int overlayBottom = loc[1] + height;
+      int screenHeight = getResources().getDisplayMetrics().heightPixels;
+      int imeTop = screenHeight - imeHeight;
+      if (overlayBottom > imeTop) {
+        int oldHeight = height;
+        height = Math.max(0, imeTop - loc[1]);
+        State.log("[IME] shrink overlay: " + oldHeight + " -> " + height);
+      }
+    }
 
     if (touchpadOverlay == null) {
       // opt-in a11y-overlay path (see _showMouseCursor); must pair with the cursor
