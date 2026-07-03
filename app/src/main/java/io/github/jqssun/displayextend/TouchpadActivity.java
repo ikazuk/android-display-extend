@@ -918,17 +918,19 @@ public class TouchpadActivity extends AppCompatActivity {
       WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
       if (rootInsets != null) {
         android.graphics.Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
-        android.graphics.Insets navInsets = rootInsets.getInsets(WindowInsets.Type.navigationBars());
-        int imeTopFromBottom = imeInsets.bottom - navInsets.bottom;
-        int screenHeight = getResources().getDisplayMetrics().heightPixels;
-        int imeTop = screenHeight - imeInsets.bottom;
+        View decorView = getWindow().getDecorView();
+        int[] decorLoc = new int[2];
+        decorView.getLocationOnScreen(decorLoc);
+        int realScreenHeight = decorLoc[1] + decorView.getHeight();
+        int imeTop = realScreenHeight - imeInsets.bottom;
         int overlayBottom = loc[1] + height;
         if (overlayBottom > imeTop) {
           int oldHeight = height;
           height = Math.max(0, imeTop - loc[1]);
           State.log("[IME] shrink overlay: " + oldHeight + " -> " + height
-              + " (imeBottom=" + imeInsets.bottom + " navBottom=" + navInsets.bottom
-              + " screenH=" + screenHeight + " imeTop=" + imeTop + ")");
+              + " (decorH=" + decorView.getHeight() + " decorY=" + decorLoc[1]
+              + " realScreenH=" + realScreenHeight
+              + " imeBottom=" + imeInsets.bottom + " imeTop=" + imeTop + ")");
         }
       }
     }
