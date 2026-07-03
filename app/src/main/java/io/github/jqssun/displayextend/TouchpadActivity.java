@@ -914,14 +914,22 @@ public class TouchpadActivity extends AppCompatActivity {
     int[] loc = new int[2];
     touchpadArea.getLocationOnScreen(loc);
 
-    if (imeVisible && imeHeight > 0) {
-      int overlayBottom = loc[1] + height;
-      int screenHeight = getResources().getDisplayMetrics().heightPixels;
-      int imeTop = screenHeight - imeHeight;
-      if (overlayBottom > imeTop) {
-        int oldHeight = height;
-        height = Math.max(0, imeTop - loc[1]);
-        State.log("[IME] shrink overlay: " + oldHeight + " -> " + height);
+    if (imeVisible && imeHeight > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
+      if (rootInsets != null) {
+        android.graphics.Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
+        android.graphics.Insets navInsets = rootInsets.getInsets(WindowInsets.Type.navigationBars());
+        int imeTopFromBottom = imeInsets.bottom - navInsets.bottom;
+        int screenHeight = getResources().getDisplayMetrics().heightPixels;
+        int imeTop = screenHeight - imeInsets.bottom;
+        int overlayBottom = loc[1] + height;
+        if (overlayBottom > imeTop) {
+          int oldHeight = height;
+          height = Math.max(0, imeTop - loc[1]);
+          State.log("[IME] shrink overlay: " + oldHeight + " -> " + height
+              + " (imeBottom=" + imeInsets.bottom + " navBottom=" + navInsets.bottom
+              + " screenH=" + screenHeight + " imeTop=" + imeTop + ")");
+        }
       }
     }
 
