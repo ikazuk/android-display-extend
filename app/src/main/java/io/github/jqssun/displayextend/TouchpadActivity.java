@@ -914,31 +914,27 @@ public class TouchpadActivity extends AppCompatActivity {
     int[] loc = new int[2];
     touchpadArea.getLocationOnScreen(loc);
 
-    if (imeVisible && imeHeight > 0) {
-      int imeTop = -1;
-      TouchpadAccessibilityService a11y = TouchpadAccessibilityService.getInstance();
-      if (a11y != null) {
-        imeTop = a11y.getImeWindowTop();
-      }
-      if (imeTop < 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
-        if (rootInsets != null) {
-          android.graphics.Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
-          View decorView = getWindow().getDecorView();
-          int[] decorLoc = new int[2];
-          decorView.getLocationOnScreen(decorLoc);
-          imeTop = decorLoc[1] + decorView.getHeight() - imeInsets.bottom;
+    if (imeVisible && imeHeight > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
+      if (rootInsets != null) {
+        android.graphics.Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
+        View decorView = getWindow().getDecorView();
+        int[] decorLoc = new int[2];
+        decorView.getLocationOnScreen(decorLoc);
+        int imeTop = decorLoc[1] + decorView.getHeight() - imeInsets.bottom;
+
+        int overlayY = loc[1];
+        if (touchpadOverlay != null) {
+          int[] overlayLoc = new int[2];
+          touchpadOverlay.getLocationOnScreen(overlayLoc);
+          overlayY = overlayLoc[1];
         }
-      }
-      State.log("[IME-DUMP] touchpadArea: pos=(" + loc[0] + "," + loc[1]
-          + ") size=" + width + "x" + height
-          + " | imeTop=" + imeTop + " imeHeight=" + imeHeight
-          + " | overlayBottom=" + (loc[1] + height));
-      if (imeTop >= 0) {
-        int overlayBottom = loc[1] + height;
+        int overlayBottom = overlayY + height;
+        State.log("[IME-DUMP] overlayY=" + overlayY + " height=" + height
+            + " bottom=" + overlayBottom + " imeTop=" + imeTop);
         if (overlayBottom > imeTop) {
           int oldHeight = height;
-          height = Math.max(0, imeTop - loc[1]);
+          height = Math.max(0, imeTop - overlayY);
           State.log("[IME] shrink overlay: " + oldHeight + " -> " + height);
         }
       }
