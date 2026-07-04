@@ -86,7 +86,13 @@ public class TouchpadActivity extends AppCompatActivity {
   private boolean useAccessibilityCursor = false;
   private boolean useAccessibilityTouchOverlay = false;
   private boolean imeVisible = false;
+  private boolean imeShrinkPending = false;
   private int imeHeight = 0;
+  private final Runnable imeShrinkRunnable =
+      () -> {
+        imeShrinkPending = false;
+        _syncTouchpadOverlay();
+      };
   private float sensitivity = 3.0f;
   private Spinner modeSpinner;
   private static final int MODE_NORMAL = 0;
@@ -253,8 +259,11 @@ public class TouchpadActivity extends AppCompatActivity {
     _showMouseCursor(targetDisplay);
 
     touchpadArea.addOnLayoutChangeListener(
-        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-            _syncTouchpadOverlay());
+        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+          if (!imeShrinkPending) {
+            _syncTouchpadOverlay();
+          }
+        });
 
     touchpadRoot.setOnApplyWindowInsetsListener(
         (v, insets) -> {
@@ -264,7 +273,14 @@ public class TouchpadActivity extends AppCompatActivity {
             imeHeight = insets.getInsets(WindowInsets.Type.ime()).bottom;
             if (imeVisible != wasVisible) {
               State.log("[IME] visible=" + imeVisible + " height=" + imeHeight);
-              mainHandler.postDelayed(this::_syncTouchpadOverlay, imeVisible ? 300 : 0);
+              mainHandler.removeCallbacks(imeShrinkRunnable);
+              if (imeVisible) {
+                imeShrinkPending = true;
+                mainHandler.postDelayed(imeShrinkRunnable, 300);
+              } else {
+                imeShrinkPending = false;
+                _syncTouchpadOverlay();
+              }
             }
           }
           return v.onApplyWindowInsets(insets);
