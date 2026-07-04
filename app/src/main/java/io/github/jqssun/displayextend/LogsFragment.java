@@ -34,22 +34,12 @@ public class LogsFragment extends Fragment {
     View bottomNav = requireActivity().findViewById(R.id.bottomNav);
     if (bottomNav != null) {
       bottomNav.post(
-          () -> {
-            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(
-                logRecyclerView,
-                (v, insets) -> {
-                  int systemBottom =
-                      insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-                          .bottom;
-                  v.setPadding(
-                      v.getPaddingLeft(),
-                      v.getPaddingTop(),
-                      v.getPaddingRight(),
-                      systemBottom + bottomNav.getHeight());
-                  return insets;
-                });
-            logRecyclerView.requestApplyInsets();
-          });
+          () ->
+              logRecyclerView.setPadding(
+                  logRecyclerView.getPaddingLeft(),
+                  logRecyclerView.getPaddingTop(),
+                  logRecyclerView.getPaddingRight(),
+                  bottomNav.getHeight()));
     }
     _scrollToBottom();
 
