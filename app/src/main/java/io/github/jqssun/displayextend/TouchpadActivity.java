@@ -562,9 +562,15 @@ public class TouchpadActivity extends AppCompatActivity {
       List<MotionEvent> toReplay = new ArrayList<>(gestureState.pendingTapEvents);
       gestureState.pendingTapEvents.clear();
       MotionEvent first = toReplay.get(0);
+      MotionEvent last = toReplay.get(toReplay.size() - 1);
+      float dx = last.getX() - first.getX();
+      float dy = last.getY() - first.getY();
+      long duration = last.getEventTime() - first.getEventTime();
       State.log("[TAP] replay via inputManager, events=" + toReplay.size()
           + " source=0x" + Integer.toHexString(first.getSource())
-          + " tool=" + first.getToolType(0));
+          + " tool=" + first.getToolType(0)
+          + " dx=" + (int) dx + " dy=" + (int) dy
+          + " duration=" + duration + "ms");
       ipcExecutor.execute(
           () -> {
             for (MotionEvent event : toReplay) {
