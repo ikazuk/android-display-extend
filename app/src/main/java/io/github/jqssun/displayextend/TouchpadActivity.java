@@ -573,6 +573,7 @@ public class TouchpadActivity extends AppCompatActivity {
           + " duration=" + duration + "ms");
       ipcExecutor.execute(
           () -> {
+            setFocus(inputManager, displayId);
             for (MotionEvent event : toReplay) {
               MotionEventHidden eventHidden = Refine.unsafeCast(event);
               eventHidden.setDisplayId(displayId);
