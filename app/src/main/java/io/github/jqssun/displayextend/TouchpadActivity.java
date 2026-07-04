@@ -930,13 +930,16 @@ public class TouchpadActivity extends AppCompatActivity {
           imeTop = decorLoc[1] + decorView.getHeight() - imeInsets.bottom;
         }
       }
+      State.log("[IME-DUMP] touchpadArea: pos=(" + loc[0] + "," + loc[1]
+          + ") size=" + width + "x" + height
+          + " | imeTop=" + imeTop + " imeHeight=" + imeHeight
+          + " | overlayBottom=" + (loc[1] + height));
       if (imeTop >= 0) {
         int overlayBottom = loc[1] + height;
         if (overlayBottom > imeTop) {
           int oldHeight = height;
           height = Math.max(0, imeTop - loc[1]);
-          State.log("[IME] shrink overlay: " + oldHeight + " -> " + height
-              + " (imeTop=" + imeTop + " overlayY=" + loc[1] + ")");
+          State.log("[IME] shrink overlay: " + oldHeight + " -> " + height);
         }
       }
     }

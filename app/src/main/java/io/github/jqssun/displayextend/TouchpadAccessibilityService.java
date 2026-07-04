@@ -374,14 +374,27 @@ public class TouchpadAccessibilityService extends AccessibilityService {
   public int getImeWindowTop() {
     List<AccessibilityWindowInfo> windows = getWindows();
     if (windows == null) return -1;
+    int imeTop = -1;
     for (AccessibilityWindowInfo window : windows) {
+      android.graphics.Rect bounds = new android.graphics.Rect();
+      window.getBoundsInScreen(bounds);
+      String typeStr;
+      switch (window.getType()) {
+        case AccessibilityWindowInfo.TYPE_APPLICATION: typeStr = "APP"; break;
+        case AccessibilityWindowInfo.TYPE_INPUT_METHOD: typeStr = "IME"; break;
+        case AccessibilityWindowInfo.TYPE_SYSTEM: typeStr = "SYS"; break;
+        case AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY: typeStr = "A11Y"; break;
+        default: typeStr = "T" + window.getType(); break;
+      }
+      State.log("[A11Y-WIN] " + typeStr + " bounds=" + bounds.toShortString()
+          + " layer=" + window.getLayer());
       if (window.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
-        android.graphics.Rect bounds = new android.graphics.Rect();
-        window.getBoundsInScreen(bounds);
-        return bounds.top;
+        if (imeTop < 0 || bounds.top < imeTop) {
+          imeTop = bounds.top;
+        }
       }
     }
-    return -1;
+    return imeTop;
   }
 
   private List<AccessibilityWindowInfo> _getWindowsForDisplay(int displayId) {
