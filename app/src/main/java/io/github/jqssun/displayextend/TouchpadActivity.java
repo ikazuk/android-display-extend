@@ -269,10 +269,14 @@ public class TouchpadActivity extends AppCompatActivity {
         (v, insets) -> {
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             boolean wasVisible = imeVisible;
+            int prevHeight = imeHeight;
             imeVisible = insets.isVisible(WindowInsets.Type.ime());
             imeHeight = insets.getInsets(WindowInsets.Type.ime()).bottom;
+            if (imeVisible != wasVisible || imeHeight != prevHeight) {
+              State.log("[IME] visible=" + imeVisible + " height=" + imeHeight
+                  + (imeVisible != wasVisible ? " (changed)" : " (animating)"));
+            }
             if (imeVisible != wasVisible) {
-              State.log("[IME] visible=" + imeVisible + " height=" + imeHeight);
               mainHandler.removeCallbacks(imeShrinkRunnable);
               if (imeVisible) {
                 imeShrinkPending = true;
