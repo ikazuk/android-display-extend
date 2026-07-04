@@ -536,6 +536,13 @@ public class TouchpadActivity extends AppCompatActivity {
     }
     gestureState.lastReplayed = gestureState.allMotionEvents.size();
 
+    if (!toReplay.isEmpty()) {
+      MotionEvent first = toReplay.get(0);
+      State.log("[REPLAY] buffered events=" + toReplay.size()
+          + " source=0x" + Integer.toHexString(first.getSource())
+          + " action=" + MotionEvent.actionToString(first.getAction()));
+    }
+
     ipcExecutor.execute(
         () -> {
           for (MotionEvent event : toReplay) {
@@ -554,6 +561,10 @@ public class TouchpadActivity extends AppCompatActivity {
     if (inputManager != null) {
       List<MotionEvent> toReplay = new ArrayList<>(gestureState.pendingTapEvents);
       gestureState.pendingTapEvents.clear();
+      MotionEvent first = toReplay.get(0);
+      State.log("[TAP] replay via inputManager, events=" + toReplay.size()
+          + " source=0x" + Integer.toHexString(first.getSource())
+          + " tool=" + first.getToolType(0));
       ipcExecutor.execute(
           () -> {
             for (MotionEvent event : toReplay) {
@@ -580,12 +591,14 @@ public class TouchpadActivity extends AppCompatActivity {
     float x = Math.max(0, first.getX());
     float y = Math.max(0, first.getY());
 
+    State.log("[TAP] replay via accessibility, pos=(" + (int) x + "," + (int) y + ")");
     Path path = new Path();
     path.moveTo(x, y);
     path.lineTo(x + 0.1f, y);
     GestureDescription.Builder builder = new GestureDescription.Builder();
     builder.setDisplayId(displayId);
     builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 40, false));
+    State.log("[TAP] calling setFocus before accessibility dispatch");
     service.setFocus(displayId);
     service.dispatchGesture(builder.build(), null, null);
     _recyclePendingTapEvents();
@@ -1347,12 +1360,14 @@ public class TouchpadActivity extends AppCompatActivity {
 
   public static boolean setFocus(IInputManager inputManager, int displayId) {
     if (inputManager != null && _trySetTaskFocus(displayId)) {
+      State.log("[FOCUS] setFocus via taskManager, displayId=" + displayId);
       return true;
     }
     try {
       TouchpadAccessibilityService accessibilityService =
           TouchpadAccessibilityService.getInstance();
       if (accessibilityService != null) {
+        State.log("[FOCUS] setFocus via accessibility, displayId=" + displayId);
         return accessibilityService.setFocus(displayId);
       }
     } catch (Throwable e) {
