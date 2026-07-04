@@ -914,23 +914,29 @@ public class TouchpadActivity extends AppCompatActivity {
     int[] loc = new int[2];
     touchpadArea.getLocationOnScreen(loc);
 
-    if (imeVisible && imeHeight > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
-      if (rootInsets != null) {
-        android.graphics.Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
-        View decorView = getWindow().getDecorView();
-        int[] decorLoc = new int[2];
-        decorView.getLocationOnScreen(decorLoc);
-        int realScreenHeight = decorLoc[1] + decorView.getHeight();
-        int imeTop = realScreenHeight - imeInsets.bottom;
+    if (imeVisible && imeHeight > 0) {
+      int imeTop = -1;
+      TouchpadAccessibilityService a11y = TouchpadAccessibilityService.getInstance();
+      if (a11y != null) {
+        imeTop = a11y.getImeWindowTop();
+      }
+      if (imeTop < 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
+        if (rootInsets != null) {
+          android.graphics.Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
+          View decorView = getWindow().getDecorView();
+          int[] decorLoc = new int[2];
+          decorView.getLocationOnScreen(decorLoc);
+          imeTop = decorLoc[1] + decorView.getHeight() - imeInsets.bottom;
+        }
+      }
+      if (imeTop >= 0) {
         int overlayBottom = loc[1] + height;
         if (overlayBottom > imeTop) {
           int oldHeight = height;
           height = Math.max(0, imeTop - loc[1]);
           State.log("[IME] shrink overlay: " + oldHeight + " -> " + height
-              + " (decorH=" + decorView.getHeight() + " decorY=" + decorLoc[1]
-              + " realScreenH=" + realScreenHeight
-              + " imeBottom=" + imeInsets.bottom + " imeTop=" + imeTop + ")");
+              + " (imeTop=" + imeTop + " overlayY=" + loc[1] + ")");
         }
       }
     }

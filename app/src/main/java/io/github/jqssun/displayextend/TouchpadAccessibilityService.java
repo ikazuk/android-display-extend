@@ -371,6 +371,19 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     return results;
   }
 
+  public int getImeWindowTop() {
+    List<AccessibilityWindowInfo> windows = getWindows();
+    if (windows == null) return -1;
+    for (AccessibilityWindowInfo window : windows) {
+      if (window.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
+        android.graphics.Rect bounds = new android.graphics.Rect();
+        window.getBoundsInScreen(bounds);
+        return bounds.top;
+      }
+    }
+    return -1;
+  }
+
   private List<AccessibilityWindowInfo> _getWindowsForDisplay(int displayId) {
     List<AccessibilityWindowInfo> targetDisplayWindows = null;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
