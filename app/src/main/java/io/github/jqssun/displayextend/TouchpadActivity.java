@@ -264,7 +264,7 @@ public class TouchpadActivity extends AppCompatActivity {
             imeHeight = insets.getInsets(WindowInsets.Type.ime()).bottom;
             if (imeVisible != wasVisible) {
               State.log("[IME] visible=" + imeVisible + " height=" + imeHeight);
-              _syncTouchpadOverlay();
+              mainHandler.postDelayed(this::_syncTouchpadOverlay, imeVisible ? 300 : 0);
             }
           }
           return v.onApplyWindowInsets(insets);
