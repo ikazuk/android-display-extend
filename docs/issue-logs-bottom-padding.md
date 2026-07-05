@@ -6,22 +6,32 @@ The last few log entries in the Logs tab are hidden behind the bottom navigation
 
 ## Root cause
 
-`LogsFragment` used a `WindowInsets` listener that set the RecyclerView's bottom padding to `systemBars().bottom` (the system navigation bar height, typically ~48px). This overwrote the XML-defined `paddingBottom="96dp"` and did not account for the `BottomNavigationView` height, which overlays the bottom of the fragment content via `layout_gravity="bottom"` in a `CoordinatorLayout`.
+`LogsFragment` used a `WindowInsets` listener that set the RecyclerView's bottom padding to `systemBars().bottom`. This is the system navigation bar height (~16-48dp), but the actual element overlapping the RecyclerView is `BottomNavigationView` (whose measured height includes the system nav bar padding internally, via Material Components). The padding needs to match `BottomNavigationView`'s height, not just the system nav bar.
 
 ## Fix
 
-Replace the `WindowInsets` listener with a simple `post()` callback that sets padding to the actual measured height of `BottomNavigationView`:
+Use `bottomNav.addOnLayoutChangeListener()` to set padding to the actual measured height of `BottomNavigationView`. This fires after layout (including rotation), so the height is always correct. Fall back to the original `systemBars().bottom` if `bottomNav` is not found.
 
 ```java
 View bottomNav = requireActivity().findViewById(R.id.bottomNav);
 if (bottomNav != null) {
-    bottomNav.post(() ->
-        logRecyclerView.setPadding(
-            logRecyclerView.getPaddingLeft(),
-            logRecyclerView.getPaddingTop(),
-            logRecyclerView.getPaddingRight(),
-            bottomNav.getHeight()));
+    bottomNav.addOnLayoutChangeListener(
+        (nav, left, top, right, bBottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+          int bottom = nav.getHeight();
+          logRecyclerView.setPadding(
+              logRecyclerView.getPaddingLeft(), logRecyclerView.getPaddingTop(),
+              logRecyclerView.getPaddingRight(), bottom);
+        });
+} else {
+    // fallback: use system nav bar height
+    ViewCompat.setOnApplyWindowInsetsListener(logRecyclerView, (v, insets) -> {
+        int bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+        v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), bottom);
+        return insets;
+    });
 }
 ```
 
-`bottomNav.post()` ensures the measurement runs after layout, so `getHeight()` returns the correct value. No hardcoded dp values or window insets needed — the padding exactly matches whatever the BottomNavigationView occupies.
+- `OnLayoutChangeListener` fires after every layout pass, so rotation is handled correctly
+- `bottomNav.getHeight()` includes Material Components' internal padding for the system nav bar
+- Fallback preserves original behavior if `bottomNav` is absent
