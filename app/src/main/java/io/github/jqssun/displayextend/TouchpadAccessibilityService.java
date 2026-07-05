@@ -330,6 +330,15 @@ public class TouchpadAccessibilityService extends AccessibilityService {
       Log.d("TouchpadA11y", msg);
       State.log(msg);
     }
+    if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+      State.log("[A11Y-EVENT] WindowState: pkg=" + event.getPackageName()
+          + " class=" + event.getClassName());
+    }
+    if (type == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
+      State.log("[A11Y-EVENT] ViewFocused: pkg=" + event.getPackageName()
+          + " class=" + event.getClassName()
+          + " text=" + event.getText());
+    }
   }
 
   @Override

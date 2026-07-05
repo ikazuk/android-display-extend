@@ -605,6 +605,10 @@ public class TouchpadActivity extends AppCompatActivity {
               inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_ASYNC);
               event.recycle();
             }
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            mainHandler.post(() ->
+                State.log("[TAP] 500ms after inject: imeVisible=" + imeVisible
+                    + " imeHeight=" + imeHeight));
           });
       return;
     }
