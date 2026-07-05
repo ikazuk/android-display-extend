@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>調査: Chrome 検索ボックスタップ時にキーボードが出ない</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --text: #eaeaea;
+    --text-muted: #a0a0b0;
+    --green: #4caf50;
+    --orange: #ff9800;
+    --red: #f44336;
+    --code-bg: #0d1b2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+  h2 { font-size: 1.2rem; margin-top: 1.8rem; margin-bottom: 0.6rem; color: #7fdbda; border-left: 4px solid #7fdbda; padding-left: 0.8rem; }
+  h3 { font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0.4rem; color: var(--orange); }
+  p { margin-bottom: 0.7rem; }
+  code { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; font-family: monospace; }
+  pre { background: var(--code-bg); padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 0.8rem 0; font-size: 0.85rem; border: 1px solid #2a3a5e; }
+  ul { margin: 0.5rem 0 0.8rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  .hypothesis { background: linear-gradient(135deg, #0a1a2a 0%, #0a2a3a 100%); border: 2px solid var(--orange); border-radius: 8px; padding: 1.2rem; margin: 1rem 0; }
+  .hypothesis h3 { margin-top: 0; }
+  .likely { border-color: var(--red); background: linear-gradient(135deg, #1a0000 0%, #2d0000 100%); }
+  .likely h3 { color: var(--red); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.5rem 0.7rem; border: 1px solid var(--surface2); text-align: left; }
+  th { background: var(--surface2); color: #7fdbda; }
+  td { background: var(--surface); }
+  .verdict { color: var(--green); font-weight: bold; }
+  .suspect { color: var(--red); font-weight: bold; }
+  .maybe { color: var(--orange); font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>調査: Chrome 検索ボックスタップ時にキーボードが出ない</h1>
+
+<h2>1. 現象</h2>
+<ul>
+  <li>外部ディスプレイの Chrome の検索ボックスをトラックパッドでタップ → IME が出ないことがある</li>
+  <li>フォーカスを一度外してもう一度タップすると出る</li>
+  <li>毎回ではなく不安定</li>
+</ul>
+
+<h2>2. このアプリが IME を抑制しうるメカニズム（コードから特定）</h2>
+
+<div class="hypothesis likely">
+<h3>仮説 A: タップ遅延 + setFocusedRootTask の競合 (最有力)</h3>
+<p>タップ操作のフロー:</p>
+<ol>
+  <li>ユーザーがタッチパッドをタップ</li>
+  <li><code>_scheduleTapReplay()</code> で <strong>doubleTapTimeout (300ms)</strong> 遅延</li>
+  <li>300ms 後に <code>_replayPendingTap()</code> がタッチイベントを外部ディスプレイに注入</li>
+  <li>Chrome の EditText がフォーカスを得て IME 表示をリクエスト</li>
+</ol>
+<p><strong>問題:</strong> accessibility パス (<code>_dispatchPendingTapViaAccessibility</code>) では、タッチ注入の<strong>直前に</strong> <code>service.setFocus(displayId)</code> を呼ぶ (line 589)。これは <code>setFocusedRootTask()</code> を呼び、<strong>ウィンドウフォーカスが一瞬リセット</strong>される。</p>
+<p>Chrome の EditText が既にフォーカスを持っている状態で再度タップすると:</p>
+<ol>
+  <li><code>setFocusedRootTask()</code> → システムが現在のフォーカスを一旦解除して再設定</li>
+  <li>タッチイベント注入 → Chrome の EditText にフォーカス (既にある)</li>
+  <li>しかしシステム側では「フォーカス変化なし」と判断 → IME 表示リクエストが発行されない</li>
+</ol>
+<p>2回目にタップすると出る理由: 1回目で一度フォーカスが外れて別の場所がフォーカスを得た後に、2回目で「新しくフォーカスを取得した」と認識されて IME が出る。</p>
+</div>
+
+<div class="hypothesis">
+<h3>仮説 B: マウスイベントとして注入される (inputManager パス)</h3>
+<p>inputManager パスの <code>_replayPendingTap()</code> (line 554-565) はバッファした MotionEvent をそのまま注入する。元イベントは <code>_obtainMotionEventWithOffset()</code> で作られるが、source は元のタッチイベントの source を引き継ぐ。</p>
+<p>しかし <code>_injectMouseEvent()</code> (line 743-775) では明示的に <code>InputDevice.SOURCE_MOUSE</code> + <code>TOOL_TYPE_MOUSE</code> を設定している。<strong>マウスクリックでは Android は IME を自動表示しない</strong> (ユーザーがマウスで操作する場合はソフトキーボード不要と判断される)。</p>
+<p>ただし <code>_replayPendingTap()</code> はバッファしたイベント（元が touchscreen source）をそのまま注入するので、このパスでは問題ない可能性もある。確認が必要。</p>
+</div>
+
+<div class="hypothesis">
+<h3>仮説 C: FLAG_ALT_FOCUSABLE_IM の影響</h3>
+<p>touchpadOverlay は <code>FLAG_NOT_FOCUSABLE | FLAG_ALT_FOCUSABLE_IM</code> で作られている。<code>FLAG_ALT_FOCUSABLE_IM</code> はこのウィンドウが「IME を受け入れるか」を反転するフラグ。</p>
+<p>通常: <code>FLAG_NOT_FOCUSABLE</code> → IME 非表示。<code>FLAG_NOT_FOCUSABLE | FLAG_ALT_FOCUSABLE_IM</code> → IME表示が「元に戻る」(表示される方向)。</p>
+<p>このフラグの組み合わせが Display 0 上の IME レイヤリングに影響し、外部ディスプレイからの IME 表示リクエストと競合する可能性はあるが、直接の原因になるとは考えにくい。</p>
+</div>
+
+<h2>3. setFocus の呼び出し箇所一覧</h2>
+
+<table>
+<tr><th>場所</th><th>呼び出しタイミング</th><th>IME に影響?</th></tr>
+<tr>
+  <td>line 589 (<code>_dispatchPendingTapViaAccessibility</code>)</td>
+  <td>タップをアクセシビリティジェスチャーとして注入する直前</td>
+  <td class="suspect">★ 高</td>
+</tr>
+<tr>
+  <td>line 810 (<code>_armDragMode</code>)</td>
+  <td>ドラッグ開始時</td>
+  <td class="maybe">中</td>
+</tr>
+<tr>
+  <td>line 879 (<code>_injectKeyEvent</code>)</td>
+  <td>Back キー注入前</td>
+  <td>低 (キー注入時のみ)</td>
+</tr>
+<tr>
+  <td>line 1255 (<code>scrollStrip onTouch</code>)</td>
+  <td>スクロールストリップを触った時</td>
+  <td>低 (スクロール時のみ)</td>
+</tr>
+<tr>
+  <td>line 1312 (accessibility scroll)</td>
+  <td>スクロール注入前</td>
+  <td>低</td>
+</tr>
+<tr>
+  <td>line 1578 (multi-touch gesture replay)</td>
+  <td>複数指ジェスチャー注入前</td>
+  <td class="maybe">中</td>
+</tr>
+</table>
+
+<h2>4. 切り分けに必要なデバッグログ</h2>
+
+<p>以下のログを追加すれば、どの仮説が正しいか切り分けられる:</p>
+
+<h3>ログ 1: タップ注入のパスとタイミング</h3>
+<pre><code>// _replayPendingTap() 内
+State.log("[TAP] replay via " + (inputManager != null ? "inputManager" : "accessibility")
+    + " events=" + gestureState.pendingTapEvents.size());
+
+// _dispatchPendingTapViaAccessibility() 内の setFocus 直前
+State.log("[TAP] setFocus before accessibility tap dispatch");</code></pre>
+
+<h3>ログ 2: 注入イベントの source</h3>
+<pre><code>// _replayPendingTap() の inputManager パス、ループ内
+State.log("[TAP] inject source=0x" + Integer.toHexString(event.getSource())
+    + " tool=" + event.getToolType(0));</code></pre>
+
+<h3>ログ 3: IME 表示変化の追跡</h3>
+<p>既に追加済みの <code>[IME] visible=</code> ログが使える。タップ後に IME が表示されたかどうか。</p>
+
+<h2>5. 推奨する次のステップ</h2>
+
+<ol>
+  <li><strong>上記ログを追加してビルド</strong></li>
+  <li><strong>再現させて確認:</strong>
+    <ul>
+      <li>タップ時に <code>[TAP] replay via inputManager</code> が出るか <code>accessibility</code> が出るか</li>
+      <li>inputManager パスなら: 注入イベントの <code>source</code> が <code>SOURCE_TOUCHSCREEN (0x1002)</code> か <code>SOURCE_MOUSE (0x2002)</code> か</li>
+      <li>accessibility パスなら: <code>[TAP] setFocus</code> の後に IME が出ないケースを確認</li>
+    </ul>
+  </li>
+  <li><strong>仮説確定後の修正候補:</strong>
+    <ul>
+      <li>仮説 A: タップ注入前の <code>setFocus</code> を、既にフォーカスがあるなら skip する</li>
+      <li>仮説 B: 注入イベントの source を明示的に <code>SOURCE_TOUCHSCREEN</code> に設定する</li>
+    </ul>
+  </li>
+</ol>
+
+</div>
+</body>
+</html>

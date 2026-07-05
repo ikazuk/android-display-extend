@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bug Report: トラックパッド表示中にGBoardのアルファベットキーが効かない</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --accent2: #533483;
+    --text: #eaeaea;
+    --text-muted: #a0a0b0;
+    --green: #4caf50;
+    --orange: #ff9800;
+    --red: #f44336;
+    --code-bg: #0d1b2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.5rem;
+  }
+  h2 {
+    font-size: 1.3rem;
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+    color: #7fdbda;
+    border-left: 4px solid #7fdbda;
+    padding-left: 0.8rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+    margin-top: 1.2rem;
+    margin-bottom: 0.5rem;
+    color: var(--orange);
+  }
+  p { margin-bottom: 0.8rem; }
+  .summary-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin: 1.5rem 0;
+  }
+  .summary-box strong { color: var(--accent); }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0.8rem 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border: 1px solid #2a3a5e;
+  }
+  pre code { background: none; padding: 0; }
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--surface2);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    font-family: monospace;
+    white-space: pre;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--surface2);
+    text-align: left;
+  }
+  th { background: var(--surface2); color: #7fdbda; }
+  td { background: var(--surface); }
+  .status-ok { color: var(--green); font-weight: bold; }
+  .status-ng { color: var(--red); font-weight: bold; }
+  .status-partial { color: var(--orange); font-weight: bold; }
+  .file-ref {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+  .callout {
+    background: var(--surface2);
+    border-left: 4px solid var(--orange);
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .root-cause {
+    background: linear-gradient(135deg, #1a0000 0%, #2d0000 100%);
+    border: 2px solid var(--red);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .root-cause h3 { color: var(--red); margin-top: 0; }
+  .hypothesis {
+    background: linear-gradient(135deg, #0a1a2a 0%, #0a2a3a 100%);
+    border: 2px solid var(--orange);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .hypothesis h3 { color: var(--orange); margin-top: 0; }
+  ul { margin: 0.5rem 0 0.8rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  .debug-section {
+    background: #0a2a0a;
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin: 1.5rem 0;
+  }
+  .debug-section h3 { color: var(--green); margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Bug Report: トラックパッド表示中にGBoardのアルファベットが入力できない</h1>
+
+<div class="summary-box">
+  <strong>再現環境:</strong> Pixel 10 Pro, GBoard<br>
+  <strong>症状:</strong> トラックパッドを出した状態で builtin ディスプレイに GBoard が出ると、アルファベットキーが押せない。Enter/Backspace は百発百中で反応。Space/ピリオドは低確率で反応。ドラッグでマウスカーソルが動く。<br>
+  <strong>ステータス:</strong> 原因切り分けのためデバッグログ追加済み
+</div>
+
+<h2>1. 有力仮説: InputConnection の commitText 問題</h2>
+
+<div class="hypothesis">
+<h3>GBoard のアルファベットキーとファンクションキーで IME→アプリの配送メカニズムが異なる</h3>
+
+<p>GBoard は入力方法によって異なるメカニズムでテキストを送信します:</p>
+
+<table>
+<tr><th>キー</th><th>GBoard の送信方法</th><th>状態</th></tr>
+<tr>
+  <td>Enter</td>
+  <td><code>InputConnection.sendKeyEvent(KEYCODE_ENTER)</code></td>
+  <td class="status-ok">✓ 動作</td>
+</tr>
+<tr>
+  <td>Backspace</td>
+  <td><code>InputConnection.sendKeyEvent(KEYCODE_DEL)</code> or <code>deleteSurroundingText()</code></td>
+  <td class="status-ok">✓ 動作</td>
+</tr>
+<tr>
+  <td>アルファベット</td>
+  <td><code>InputConnection.commitText("a", 1)</code></td>
+  <td class="status-ng">✗ 動作しない</td>
+</tr>
+<tr>
+  <td>Space</td>
+  <td><code>commitText(" ", 1)</code> or <code>sendKeyEvent(KEYCODE_SPACE)</code> (状況依存)</td>
+  <td class="status-partial">△ 低確率で動作</td>
+</tr>
+<tr>
+  <td>ピリオド</td>
+  <td><code>commitText(".", 1)</code> or <code>sendKeyEvent(KEYCODE_PERIOD)</code> (状況依存)</td>
+  <td class="status-partial">△ 低確率で動作</td>
+</tr>
+</table>
+
+<p><strong>仮説:</strong> <code>DISPLAY_IME_POLICY_FALLBACK_DISPLAY</code> 設定下で、GBoard が Display 0 に表示されながら外部ディスプレイの EditText に入力する場合、<code>sendKeyEvent()</code> 経由の KeyEvent はクロスディスプレイで正しく配送されるが、<code>commitText()</code> / <code>setComposingText()</code> 経由のテキスト入力は InputConnection の接続先ディスプレイ問題により失敗する。</p>
+</div>
+
+<h2>2. 対立仮説: タッチオーバーレイの矩形重複</h2>
+
+<div class="callout">
+<strong>排除できない可能性:</strong> touchpadOverlay と GBoard が矩形的に重なっていて、アルファベット領域へのタッチがオーバーレイに横取りされている可能性もまだ残っている。ただし、Backspace が 'm' キーの隣にあって百発百中なのは、この仮説と矛盾する。
+</div>
+
+<p>もし矩形重複が原因なら、以下が当てはまるはず:</p>
+<ul>
+  <li>オーバーレイの下端が GBoard のアルファベット行と重なり、最下段 (Enter/BS) は外</li>
+  <li>しかし BS は 'm' の横にあるので、同じ Y 座標のはず → <strong>矛盾</strong></li>
+</ul>
+
+<p>このことから、<strong>仮説 1 (InputConnection) の方が有力</strong>と判断。</p>
+
+<h2>3. 「ドラッグでカーソルが動く」の解釈</h2>
+
+<p>ユーザーが「GBoard のアルファベット部分を押すとカーソルが動く」と報告しているのは:</p>
+<ul>
+  <li><strong>GBoard の上側</strong>（トラックパッド領域）に指が当たっている場合</li>
+  <li>GBoard のキーを押そうとして指がスワイプ的に動き、<strong>トラックパッド領域部分</strong>で ACTION_DOWN が発生</li>
+  <li>もしくは GBoard 表示時にトラックパッド領域をタッチした際の話</li>
+</ul>
+
+<p>デバッグログにより、IME 表示中にオーバーレイにタッチが来ているかどうかが判明します。</p>
+
+<h2>4. デバッグログの使い方</h2>
+
+<div class="debug-section">
+<h3>追加したログと確認方法</h3>
+
+<p>タグ <code>TouchpadActivity</code> と <code>TouchpadA11y</code> でフィルタ:</p>
+
+<pre><code>adb logcat -s TouchpadActivity:D TouchpadA11y:D</code></pre>
+
+<h3>ログ 1: IME 表示状態の変化</h3>
+<pre><code>[IME-DEBUG] imeVisible=true imeHeight=732 touchpadArea=[1080x1520 @ y=120]
+[IME-DEBUG] overlay screen pos=(0,120) size=1080x1520</code></pre>
+<p><strong>確認ポイント:</strong> GBoard 表示時にオーバーレイのサイズが縮小されるか、元のまま残るか。</p>
+
+<h3>ログ 2: IME 表示中のオーバーレイへのタッチ</h3>
+<pre><code>[IME-DEBUG] touch on overlay WHILE IME VISIBLE: action=DOWN local=(540,1200) screen=(540,1320) ...</code></pre>
+<p><strong>確認ポイント:</strong></p>
+<ul>
+  <li><strong>ログが出る</strong> → オーバーレイがタッチを横取りしている（仮説2が正しい）</li>
+  <li><strong>ログが出ない</strong> → GBoard がタッチを正常に受信している（仮説1が正しい）</li>
+</ul>
+
+<h3>ログ 3: KeyEvent の配送</h3>
+<pre><code>[IME-DEBUG] onKeyEvent: keyCode=66 action=DOWN char=none source=0x101 displayId=0 device=Virtual</code></pre>
+<p><strong>確認ポイント:</strong></p>
+<ul>
+  <li>Enter (keyCode=66) / Backspace (keyCode=67) の KeyEvent が<strong>来る</strong></li>
+  <li>アルファベットキー (keyCode=29-54) の KeyEvent が<strong>来ない</strong></li>
+</ul>
+<p>この結果が出れば、仮説1（<code>commitText</code> は KeyEvent を発生させないので <code>onKeyEvent</code> には来ない）が確定。</p>
+
+<h3>ログ 4: AccessibilityEvent (テキスト変化)</h3>
+<pre><code>[IME-DEBUG] a11yEvent: type=0x10 pkg=com.example.app text=[hello] before=hell added=1 removed=0</code></pre>
+<p><strong>確認ポイント:</strong></p>
+<ul>
+  <li><code>TYPE_VIEW_TEXT_CHANGED (0x10)</code> がアルファベット入力時に<strong>出ない</strong> → commitText が外部ディスプレイの EditText に到達していない</li>
+  <li><strong>出る</strong> → commitText は到達しているが別の問題で表示されていない</li>
+</ul>
+</div>
+
+<h2>5. 判定フローチャート</h2>
+
+<div class="diagram">
+GBoard のアルファベットキーを押す
+    │
+    ├─ [IME-DEBUG] touch on overlay が出る?
+    │       │
+    │       ├─ YES → オーバーレイがタッチ横取り (仮説2)
+    │       │         修正: オーバーレイをIME領域から外す
+    │       │
+    │       └─ NO → GBoard がタッチを受信している → 次へ
+    │
+    ├─ [IME-DEBUG] onKeyEvent でアルファベットの KeyEvent が来る?
+    │       │
+    │       ├─ YES → KeyEvent は配送されている、別の問題
+    │       │
+    │       └─ NO → GBoard は commitText() を使っている → 次へ
+    │
+    └─ [IME-DEBUG] a11yEvent TYPE_VIEW_TEXT_CHANGED が来る?
+            │
+            ├─ YES → commitText は到達しているが描画されていない
+            │
+            └─ NO → commitText がクロスディスプレイで失敗 (仮説1確定)
+                     → Android framework の InputMethodManagerService の問題
+                     → アプリ側で対処: AccessibilityService で
+                       InputConnection を proxy するか、
+                       IME policy を変更するか検討
+</div>
+
+<h2>6. 変更ファイル一覧</h2>
+
+<table>
+<tr><th>ファイル</th><th>変更内容</th></tr>
+<tr>
+  <td><code>TouchpadActivity.java</code></td>
+  <td>
+    <ul>
+      <li><code>imeVisible</code> / <code>imeHeight</code> フィールド追加</li>
+      <li><code>setOnApplyWindowInsetsListener</code> で IME 表示を追跡しログ出力</li>
+      <li><code>_setupTouchListenerForInputManager</code> 内で IME 表示中のタッチをログ出力</li>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><code>TouchpadAccessibilityService.java</code></td>
+  <td>
+    <ul>
+      <li><code>onKeyEvent</code> で全 KeyEvent の詳細をログ出力</li>
+      <li><code>onAccessibilityEvent</code> で TEXT_CHANGED / FOCUSED / WINDOW_STATE_CHANGED をログ出力</li>
+    </ul>
+  </td>
+</tr>
+</table>
+
+</div>
+</body>
+</html>
