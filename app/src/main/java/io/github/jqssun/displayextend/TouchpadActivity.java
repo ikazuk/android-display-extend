@@ -593,6 +593,11 @@ public class TouchpadActivity extends AppCompatActivity {
           + " duration=" + duration + "ms");
       ipcExecutor.execute(
           () -> {
+            try {
+              int imePolicy = ServiceUtils.getWindowManager().getDisplayImePolicy(displayId);
+              State.log("[TAP] imePolicy=" + DisplayImePolicyCompat.toDebugString(imePolicy)
+                  + " for displayId=" + displayId);
+            } catch (Throwable ignored) {}
             setFocus(inputManager, displayId);
             for (MotionEvent event : toReplay) {
               MotionEventHidden eventHidden = Refine.unsafeCast(event);
