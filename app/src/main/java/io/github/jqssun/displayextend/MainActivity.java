@@ -12,6 +12,7 @@ import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Display;
+import android.view.View;
 import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
@@ -157,6 +158,14 @@ public class MainActivity extends AppCompatActivity {
         (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
     navController = navHostFragment.getNavController();
     bottomNav = findViewById(R.id.bottomNav);
+    View navHost = findViewById(R.id.nav_host_fragment);
+    bottomNav.addOnLayoutChangeListener(
+        (v, l, t, r, b, ol, ot, orr, ob) ->
+            navHost.setPadding(
+                navHost.getPaddingLeft(),
+                navHost.getPaddingTop(),
+                navHost.getPaddingRight(),
+                b - t));
     MaterialToolbar toolbar = findViewById(R.id.toolbar);
     setSupportActionBar(toolbar);
     AppBarConfiguration appBarConfig =
