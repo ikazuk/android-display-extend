@@ -34,6 +34,7 @@ import android.view.MotionEventHidden;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.WindowInsets;
+import android.view.WindowInsetsAnimation;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -85,6 +86,8 @@ public class TouchpadActivity extends AppCompatActivity {
   private boolean isCursorLocked = false;
   private boolean useAccessibilityCursor = false;
   private boolean useAccessibilityTouchOverlay = false;
+  private boolean imeVisibleOnBuiltin = false;
+  private boolean imeShrinkPending = false;
   private float sensitivity = 3.0f;
   private Spinner modeSpinner;
   private static final int MODE_NORMAL = 0;
@@ -251,8 +254,41 @@ public class TouchpadActivity extends AppCompatActivity {
     _showMouseCursor(targetDisplay);
 
     touchpadArea.addOnLayoutChangeListener(
-        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-            _syncTouchpadOverlay());
+        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+          if (!imeShrinkPending) {
+            _syncTouchpadOverlay();
+          }
+        });
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      touchpadRoot.setWindowInsetsAnimationCallback(
+          new WindowInsetsAnimation.Callback(WindowInsetsAnimation.Callback.DISPATCH_MODE_STOP) {
+            @Override
+            public WindowInsets onProgress(
+                WindowInsets insets, List<WindowInsetsAnimation> runningAnimations) {
+              return insets;
+            }
+
+            @Override
+            public void onPrepare(WindowInsetsAnimation animation) {
+              if ((animation.getTypeMask() & WindowInsets.Type.ime()) != 0) {
+                imeShrinkPending = true;
+              }
+            }
+
+            @Override
+            public void onEnd(WindowInsetsAnimation animation) {
+              if ((animation.getTypeMask() & WindowInsets.Type.ime()) != 0) {
+                WindowInsets insets = touchpadRoot.getRootWindowInsets();
+                if (insets != null) {
+                  imeVisibleOnBuiltin = insets.isVisible(WindowInsets.Type.ime());
+                }
+                imeShrinkPending = false;
+                _syncTouchpadOverlay();
+              }
+            }
+          });
+    }
 
     nightModeButton = findViewById(R.id.nightModeButton);
     _registerNightModeButton((MaterialButton) findViewById(R.id.backButton));
@@ -530,6 +566,7 @@ public class TouchpadActivity extends AppCompatActivity {
       gestureState.pendingTapEvents.clear();
       ipcExecutor.execute(
           () -> {
+            setFocus(inputManager, displayId);
             for (MotionEvent event : toReplay) {
               MotionEventHidden eventHidden = Refine.unsafeCast(event);
               eventHidden.setDisplayId(displayId);
@@ -887,6 +924,28 @@ public class TouchpadActivity extends AppCompatActivity {
 
     int[] loc = new int[2];
     touchpadArea.getLocationOnScreen(loc);
+
+    if (imeVisibleOnBuiltin && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
+      if (rootInsets != null) {
+        android.graphics.Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
+        View decorView = getWindow().getDecorView();
+        int[] decorLoc = new int[2];
+        decorView.getLocationOnScreen(decorLoc);
+        int imeTop = decorLoc[1] + decorView.getHeight() - imeInsets.bottom;
+
+        int overlayY = loc[1];
+        if (touchpadOverlay != null) {
+          int[] overlayLoc = new int[2];
+          touchpadOverlay.getLocationOnScreen(overlayLoc);
+          overlayY = overlayLoc[1];
+        }
+        int overlayBottom = overlayY + height;
+        if (overlayBottom > imeTop) {
+          height = Math.max(0, imeTop - overlayY);
+        }
+      }
+    }
 
     if (touchpadOverlay == null) {
       // opt-in a11y-overlay path (see _showMouseCursor); must pair with the cursor
@@ -1419,6 +1478,13 @@ public class TouchpadActivity extends AppCompatActivity {
     super.onResume();
     if (touchpadOverlay != null) touchpadOverlay.setVisibility(View.VISIBLE);
     if (!isCursorLocked) _setCursorVisible(true);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      touchpadRoot.post(() -> {
+        WindowInsets insets = touchpadRoot.getRootWindowInsets();
+        imeVisibleOnBuiltin = insets != null && insets.isVisible(WindowInsets.Type.ime());
+        _syncTouchpadOverlay();
+      });
+    }
   }
 
   private static final int[] ORIENTATIONS = {
