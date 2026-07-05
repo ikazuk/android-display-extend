@@ -1500,6 +1500,7 @@ public class TouchpadActivity extends AppCompatActivity {
   @Override
   protected void onPause() {
     super.onPause();
+    State.log("[LIFECYCLE] onPause");
     // hide only; do not remove from WindowManager. The overlay carries
     // FLAG_ALT_FOCUSABLE_IM, which is what gives the phone an IME layering
     // surface for inputs on the cast display; removing it on pause kills
@@ -1511,6 +1512,7 @@ public class TouchpadActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    State.log("[LIFECYCLE] onResume");
     if (touchpadOverlay != null) touchpadOverlay.setVisibility(View.VISIBLE);
     if (!isCursorLocked) _setCursorVisible(true);
   }
