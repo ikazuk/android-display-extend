@@ -264,7 +264,10 @@ public class TouchpadActivity extends AppCompatActivity {
           (v, insets) -> {
             boolean wasVisible = imeVisibleOnBuiltin;
             imeVisibleOnBuiltin = insets.isVisible(WindowInsets.Type.ime());
+            int imeBottom = insets.getInsets(WindowInsets.Type.ime()).bottom;
             if (imeVisibleOnBuiltin != wasVisible) {
+              State.log("[IME] visible: " + wasVisible + " -> " + imeVisibleOnBuiltin
+                  + " imeBottom=" + imeBottom);
               if (imeVisibleOnBuiltin) {
                 imeShrinkPending = true;
                 mainHandler.post(() -> {
@@ -554,8 +557,10 @@ public class TouchpadActivity extends AppCompatActivity {
     if (inputManager != null) {
       List<MotionEvent> toReplay = new ArrayList<>(gestureState.pendingTapEvents);
       gestureState.pendingTapEvents.clear();
+      State.log("[TAP] replay events=" + toReplay.size());
       ipcExecutor.execute(
           () -> {
+            State.log("[TAP] setFocus before inject");
             setFocus(inputManager, displayId);
             for (MotionEvent event : toReplay) {
               MotionEventHidden eventHidden = Refine.unsafeCast(event);
@@ -563,6 +568,7 @@ public class TouchpadActivity extends AppCompatActivity {
               inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_ASYNC);
               event.recycle();
             }
+            State.log("[TAP] inject done");
           });
       return;
     }
