@@ -270,16 +270,7 @@ public class TouchpadActivity extends AppCompatActivity {
             if (imeVisibleOnBuiltin != wasVisible) {
               State.log("[IME] visible: " + wasVisible + " -> " + imeVisibleOnBuiltin
                   + " imeBottom=" + imeBottom);
-              if (imeVisibleOnBuiltin) {
-                imeShrinkPending = true;
-                mainHandler.postDelayed(() -> {
-                  imeShrinkPending = false;
-                  _syncTouchpadOverlay();
-                }, 300);
-              } else {
-                imeShrinkPending = false;
-                _syncTouchpadOverlay();
-              }
+              _syncTouchpadOverlay();
             }
             return v.onApplyWindowInsets(insets);
           });
