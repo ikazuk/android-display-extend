@@ -256,6 +256,8 @@ public class TouchpadActivity extends AppCompatActivity {
         (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
           if (!imeShrinkPending) {
             _syncTouchpadOverlay();
+          } else {
+            State.log("[LAYOUT] blocked by imeShrinkPending");
           }
         });
 
@@ -914,6 +916,8 @@ public class TouchpadActivity extends AppCompatActivity {
    * measured (creating the overlay) and again on rotation/resize.
    */
   private void _syncTouchpadOverlay() {
+    State.log("[SYNC] called, imeVisibleOnBuiltin=" + imeVisibleOnBuiltin
+        + " imeShrinkPending=" + imeShrinkPending);
     int width = touchpadArea.getWidth();
     int height = touchpadArea.getHeight();
     if (width == 0 || height == 0) return;
