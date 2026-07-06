@@ -272,10 +272,10 @@ public class TouchpadActivity extends AppCompatActivity {
                   + " imeBottom=" + imeBottom);
               if (imeVisibleOnBuiltin) {
                 imeShrinkPending = true;
-                mainHandler.post(() -> {
+                mainHandler.postDelayed(() -> {
                   imeShrinkPending = false;
                   _syncTouchpadOverlay();
-                });
+                }, 300);
               } else {
                 imeShrinkPending = false;
                 _syncTouchpadOverlay();
