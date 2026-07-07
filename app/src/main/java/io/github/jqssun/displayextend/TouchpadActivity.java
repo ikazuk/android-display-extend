@@ -564,32 +564,18 @@ public class TouchpadActivity extends AppCompatActivity {
           () -> {
             State.log("[TAP] setFocus before inject");
             setFocus(inputManager, displayId);
-            MotionEvent down = null;
-            MotionEvent up = null;
             for (MotionEvent event : toReplay) {
-              if (event.getActionMasked() == MotionEvent.ACTION_DOWN && down == null) {
-                down = MotionEvent.obtain(event);
-              }
-              if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-                up = MotionEvent.obtain(event);
-              }
               event.recycle();
             }
-            if (down != null && up != null) {
-              State.log("[TAP] injecting DOWN+UP only");
-              MotionEventHidden downHidden = Refine.unsafeCast(down);
-              downHidden.setDisplayId(displayId);
-              inputManager.injectInputEvent(down, INJECT_INPUT_EVENT_MODE_ASYNC);
-              MotionEventHidden upHidden = Refine.unsafeCast(up);
-              upHidden.setDisplayId(displayId);
-              inputManager.injectInputEvent(up, INJECT_INPUT_EVENT_MODE_ASYNC);
-              down.recycle();
-              up.recycle();
-            } else {
-              State.log("[TAP] fallback: injecting all events");
-              if (down != null) down.recycle();
-              if (up != null) up.recycle();
-            }
+            State.log("[TAP] injecting as mouse click");
+            long now = SystemClock.uptimeMillis();
+            _injectMouseEvent(now, now, MotionEvent.ACTION_DOWN, 0, MotionEvent.BUTTON_PRIMARY);
+            _injectMouseEvent(
+                now, now, MotionEvent.ACTION_BUTTON_PRESS, MotionEvent.BUTTON_PRIMARY,
+                MotionEvent.BUTTON_PRIMARY);
+            _injectMouseEvent(
+                now, now, MotionEvent.ACTION_BUTTON_RELEASE, MotionEvent.BUTTON_PRIMARY, 0);
+            _injectMouseEvent(now, now, MotionEvent.ACTION_UP, 0, 0);
             State.log("[TAP] inject done");
           });
       return;
