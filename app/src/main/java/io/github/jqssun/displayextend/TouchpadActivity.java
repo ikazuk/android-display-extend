@@ -564,13 +564,31 @@ public class TouchpadActivity extends AppCompatActivity {
           () -> {
             State.log("[TAP] setFocus before inject");
             setFocus(inputManager, displayId);
-            try { Thread.sleep(50); } catch (InterruptedException ignored) {}
-            State.log("[TAP] injecting after 50ms wait");
+            MotionEvent down = null;
+            MotionEvent up = null;
             for (MotionEvent event : toReplay) {
-              MotionEventHidden eventHidden = Refine.unsafeCast(event);
-              eventHidden.setDisplayId(displayId);
-              inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_ASYNC);
+              if (event.getActionMasked() == MotionEvent.ACTION_DOWN && down == null) {
+                down = MotionEvent.obtain(event);
+              }
+              if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                up = MotionEvent.obtain(event);
+              }
               event.recycle();
+            }
+            if (down != null && up != null) {
+              State.log("[TAP] injecting DOWN+UP only");
+              MotionEventHidden downHidden = Refine.unsafeCast(down);
+              downHidden.setDisplayId(displayId);
+              inputManager.injectInputEvent(down, INJECT_INPUT_EVENT_MODE_ASYNC);
+              MotionEventHidden upHidden = Refine.unsafeCast(up);
+              upHidden.setDisplayId(displayId);
+              inputManager.injectInputEvent(up, INJECT_INPUT_EVENT_MODE_ASYNC);
+              down.recycle();
+              up.recycle();
+            } else {
+              State.log("[TAP] fallback: injecting all events");
+              if (down != null) down.recycle();
+              if (up != null) up.recycle();
             }
             State.log("[TAP] inject done");
           });
