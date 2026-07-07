@@ -564,6 +564,8 @@ public class TouchpadActivity extends AppCompatActivity {
           () -> {
             State.log("[TAP] setFocus before inject");
             setFocus(inputManager, displayId);
+            try { Thread.sleep(50); } catch (InterruptedException ignored) {}
+            State.log("[TAP] injecting after 50ms wait");
             for (MotionEvent event : toReplay) {
               MotionEventHidden eventHidden = Refine.unsafeCast(event);
               eventHidden.setDisplayId(displayId);
